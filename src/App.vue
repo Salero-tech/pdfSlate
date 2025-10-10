@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import PdfViewer from './pdf/PdfViewer.vue'
-import Toolbar from './toolbar/Toolbar.vue';
+import Toolbar from './toolbar/toolbar.vue';
 </script>
 
 <template>
   <PdfViewer class="pdfViewer"/>
-  <Toolbar class="toolbar"/>
 </template>
 
 <style>
@@ -15,7 +14,6 @@ html, body {
   padding: 0;
 }
 
-
 #app {
   height: 100vh;
   width: 100%;
@@ -23,6 +21,31 @@ html, body {
   display: flex;
 }
 
+/* Prevent image dragging globally */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  pointer-events: none;
+}
+
+/* Prevent text selection and dragging */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Prevent dragging of any elements */
+* {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+}
 </style>
 
 <style scoped>

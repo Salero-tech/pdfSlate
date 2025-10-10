@@ -3,30 +3,45 @@ import { usePdfiumEngine } from '@embedpdf/engines/vue';
 import { EmbedPDF } from '@embedpdf/core/vue';
 import { createPluginRegistration } from '@embedpdf/core';
 
-// Import the essential plugins and their components
-import { ViewportPluginPackage, Viewport } from '@embedpdf/plugin-viewport/vue';
-import { Scroller, ScrollPluginPackage } from '@embedpdf/plugin-scroll/vue';
-import { LoaderPluginPackage } from '@embedpdf/plugin-loader/vue';
-import { RenderLayer, RenderPluginPackage } from '@embedpdf/plugin-render/vue';
 
-// 1. Initialize the engine with the Vue composable
+// Import the essential plugins and their components
+import { ViewportPluginPackage } from '@embedpdf/plugin-viewport/vue';
+import { ScrollPluginPackage } from '@embedpdf/plugin-scroll/vue';
+import { LoaderPluginPackage } from '@embedpdf/plugin-loader/vue';
+import { RenderPluginPackage } from '@embedpdf/plugin-render/vue';
+import { AnnotationPluginPackage } from '@embedpdf/plugin-annotation/vue';
+import { InteractionManagerPluginPackage } from '@embedpdf/plugin-interaction-manager/vue'
+import { SelectionPluginPackage } from '@embedpdf/plugin-selection/vue'
+import { HistoryPluginPackage } from '@embedpdf/plugin-history/vue'
+import { ExportPluginPackage } from '@embedpdf/plugin-export/vue'
+import PdfElement from './PdfElement.vue';
+import PdfLoad from './pdfLoad.vue';
+
+
 const { engine, isLoading } = usePdfiumEngine();
 
-// 2. Register the plugins you need
 const plugins = [
-  createPluginRegistration(LoaderPluginPackage, {
-    loadingOptions: {
-      type: 'url',
-      pdfFile: {
-        id: 'example-pdf',
-        url: 'https://snippet.embedpdf.com/ebook.pdf',
-      },
-    },
-  }),
+  createPluginRegistration(LoaderPluginPackage),
   createPluginRegistration(ViewportPluginPackage),
   createPluginRegistration(ScrollPluginPackage),
   createPluginRegistration(RenderPluginPackage),
+  // Register dependencies first
+  createPluginRegistration(InteractionManagerPluginPackage),
+  createPluginRegistration(SelectionPluginPackage),
+  createPluginRegistration(HistoryPluginPackage),
+  createPluginRegistration(AnnotationPluginPackage, {
+    annotationAuthor: 'pdfSlate',
+    autoCommit: true,
+    selectAfterCreate: false,
+  }),
+  createPluginRegistration(ExportPluginPackage, {
+    defaultFileName: 'my-document.pdf',
+  }),
 ];
+
+
+
+
 </script>
 
 <template>
@@ -34,22 +49,9 @@ const plugins = [
     <div v-if="isLoading || !engine" class="loading-pane">
       Loading PDF Engine...
     </div>
-    
     <EmbedPDF v-else :engine="engine" :plugins="plugins">
-      <Viewport class="viewport-class">
-        <Scroller>
-          <template #default="{ page }">
-            <div
-              :style="{
-                width: `${page.width}px`,
-                height: `${page.height}px`,
-              }"
-            >
-              <RenderLayer :pageIndex="page.pageIndex" />
-            </div>
-          </template>
-        </Scroller>
-      </Viewport>
+      <PdfLoad />
+      <PdfElement />
     </EmbedPDF>
   </div>
 </template>
