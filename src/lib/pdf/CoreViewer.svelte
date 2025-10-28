@@ -3,6 +3,7 @@
     import { EmbedPDF } from "@embedpdf/core/svelte";
     import { createPluginRegistration } from "@embedpdf/core";
     import { ZoomPluginPackage } from "@embedpdf/plugin-zoom";
+    import { ExportPluginPackage } from '@embedpdf/plugin-export/svelte'
     import {
         TilingPluginPackage,
         TilingLayer,
@@ -24,6 +25,7 @@
     } from "@embedpdf/plugin-render/svelte";
     //components
     import ZoomControlls from "./ZoomControlls.svelte";
+    import SaveChanges from "./SaveChanges.svelte";
 
     const { file } = $props();
 
@@ -53,6 +55,9 @@
             overlapPx: 5,
             extraRings: 1, // Pre-render one ring of tiles outside the viewport
         }),
+        createPluginRegistration(ExportPluginPackage, {
+    defaultFileName: 'my-document.pdf',
+  }),
     ];
 </script>
 
@@ -73,6 +78,7 @@
     <div class="loading-pane">Loading PDF Engine...</div>
 {:else}
     <EmbedPDF engine={pdfEngine.engine} {plugins}>
+        <SaveChanges />
         <ZoomControlls />
         <Viewport class="viewport-class">
             <Scroller {RenderPageSnippet} />
