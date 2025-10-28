@@ -3,7 +3,10 @@
     import { EmbedPDF } from "@embedpdf/core/svelte";
     import { createPluginRegistration } from "@embedpdf/core";
     import { ZoomPluginPackage } from "@embedpdf/plugin-zoom";
-    import { TilingPluginPackage, TilingLayer } from '@embedpdf/plugin-tiling/svelte'
+    import {
+        TilingPluginPackage,
+        TilingLayer,
+    } from "@embedpdf/plugin-tiling/svelte";
     // Import the essential plugins and their components
     import {
         ViewportPluginPackage,
@@ -15,9 +18,14 @@
         type RenderPageProps,
     } from "@embedpdf/plugin-scroll/svelte";
     import { LoaderPluginPackage } from "@embedpdf/plugin-loader/svelte";
-    import { RenderLayer, RenderPluginPackage } from "@embedpdf/plugin-render/svelte";
+    import {
+        RenderLayer,
+        RenderPluginPackage,
+    } from "@embedpdf/plugin-render/svelte";
     //components
     import ZoomControlls from "./ZoomControlls.svelte";
+
+    const { file } = $props();
 
     // 1. Initialize the engine with the Svelte store
     const pdfEngine = usePdfiumEngine();
@@ -26,10 +34,11 @@
     const plugins = [
         createPluginRegistration(LoaderPluginPackage, {
             loadingOptions: {
-                type: "url",
+                type: "buffer",
                 pdfFile: {
-                    id: "example-pdf",
-                    url: "https://snippet.embedpdf.com/ebook.pdf",
+                    id: Math.random().toString(36).substring(2, 15),
+                    name: "test.pdf",
+                    content: file,
                 },
             },
         }),
@@ -47,37 +56,40 @@
     ];
 </script>
 
-
 {#snippet RenderPageSnippet(page: RenderPageProps)}
-    <div style:width={`${page.width}px`} style:height={`${page.height}px`} style:position="relative">
-    <!-- 1. Low-resolution base layer for immediate feedback -->
-    <RenderLayer pageIndex={page.pageIndex} scale={1} />
-    <!-- 2. High-resolution tile layer on top -->
-    <TilingLayer pageIndex={page.pageIndex} scale={page.scale} />
-  </div>
+    <div
+        style:width={`${page.width}px`}
+        style:height={`${page.height}px`}
+        style:position="relative"
+    >
+        <!-- 1. Low-resolution base layer for immediate feedback -->
+        <RenderLayer pageIndex={page.pageIndex} scale={1} />
+        <!-- 2. High-resolution tile layer on top -->
+        <TilingLayer pageIndex={page.pageIndex} scale={page.scale} />
+    </div>
 {/snippet}
 
 {#if pdfEngine.isLoading || !pdfEngine.engine}
-        <div class="loading-pane">Loading PDF Engine...</div>
-    {:else}
-        <EmbedPDF engine={pdfEngine.engine} {plugins}>
-            <ZoomControlls />
-            <Viewport class="viewport-class">
-                <Scroller {RenderPageSnippet} />
-            </Viewport>
-        </EmbedPDF>
-    {/if}
+    <div class="loading-pane">Loading PDF Engine...</div>
+{:else}
+    <EmbedPDF engine={pdfEngine.engine} {plugins}>
+        <ZoomControlls />
+        <Viewport class="viewport-class">
+            <Scroller {RenderPageSnippet} />
+        </Viewport>
+    </EmbedPDF>
+{/if}
 
 <style>
-.loading-pane {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-}
-.viewport-class {
-    background-color: #f1f3f5;
-    height: 100%;
-    width: 100%;
-}
+    .loading-pane {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+    .viewport-class {
+        background-color: #f1f3f5;
+        height: 100%;
+        width: 100%;
+    }
 </style>
