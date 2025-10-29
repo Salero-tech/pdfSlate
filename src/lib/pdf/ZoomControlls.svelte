@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { enumEntries } from '@embedpdf/core';
 import { useZoom } from '@embedpdf/plugin-zoom/svelte';
-
+import { type PinchCustomEvent, type GestureCustomEvent } from 'svelte-gestures';
 
 const zoom = useZoom();
 
@@ -16,6 +17,24 @@ const wheelZoom = (event: WheelEvent) => {
     }
 };
 
+let zoomScale = zoom.state.currentZoomLevel;
+
+export function pinchTouchDown(event: GestureCustomEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    zoomScale = zoom.state.currentZoomLevel; // Save the zoom at the start of the gesture
+}
+
+export function pinchzoomFun(event: PinchCustomEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    // Calculate the new zoom based on the initial zoom and the pinch scale
+    const newZoom = zoomScale * event.detail.scale;
+    zoom.provides?.requestZoom(newZoom, {
+        vx: event.detail.center.x,
+        vy: event.detail.center.y
+    });
+}
 
 const controlKeyboardZoom = (event: KeyboardEvent) => {
     if (!event.ctrlKey) return;

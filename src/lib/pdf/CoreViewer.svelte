@@ -26,6 +26,7 @@
     //components
     import ZoomControlls from "./ZoomControlls.svelte";
     import SaveChanges from "./SaveChanges.svelte";
+    import { usePinch } from 'svelte-gestures';
 
     const { file } = $props();
 
@@ -59,6 +60,8 @@
     defaultFileName: 'my-document.pdf',
   }),
     ];
+
+    let zoomElement: ZoomControlls;
 </script>
 
 {#snippet RenderPageSnippet(page: RenderPageProps)}
@@ -79,8 +82,10 @@
 {:else}
     <EmbedPDF engine={pdfEngine.engine} {plugins}>
         <SaveChanges />
-        <ZoomControlls />
-        <Viewport class="viewport-class">
+        <ZoomControlls bind:this={zoomElement}/>
+        <Viewport class="viewport-class" {...usePinch((i) => zoomElement.pinchzoomFun(i),()=>({}), {
+            onpinchdown: (i) => zoomElement.pinchTouchDown(i)
+        })}>
             <Scroller {RenderPageSnippet} />
         </Viewport>
     </EmbedPDF>
