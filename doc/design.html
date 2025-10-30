@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF Viewer Mockup</title>
+  <style>
+    :root{
+      --bg: #0d1117;
+      --panel: rgba(255,255,255,0.08);
+      --panel-strong: rgba(255,255,255,0.14);
+      --stroke: rgba(255,255,255,0.16);
+      --text: #e6edf3;
+      --muted: #9aa4b2;
+      --accent: #5b9cff;
+      --shadow: 0 8px 24px rgba(0,0,0,0.35);
+      --gap: 12px;
+      --hit: 48px;
+      --topbar-h: 52px;
+      --toolbar-w: 68px;
+      --thumbs-w: 240px;
+      --popover-w: 280px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans;
+    }
+
+    .app {
+      min-height: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+
+    /* FLOATING LEFT TOOLBAR - Redesigned with fixed height slots */
+    .toolbar {
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: var(--toolbar-w);
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--gap);
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      z-index: 20;
+    }
+
+    .mode-stack, .tool-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--stroke), transparent);
+      margin: 4px 0;
+    }
+
+    /* Tool slots with fixed height to prevent shifting */
+    .tool-slot {
+      position: relative;
+      width: 100%;
+      height: 72px; /* Fixed height for tool + settings button */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Main tool buttons */
+    .tool, .mode, .add {
+      position: relative;
+      width: 100%;
+      height: var(--hit);
+      border-radius: 12px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 200ms ease;
+      outline: none;
+    }
+    
+    .tool:hover, .mode:hover, .add:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.1);
+      transform: translateY(-1px);
+    }
+
+    /* Tool selection */
+    .tool-radio { display: none; }
+
+    .tool-radio:checked + .tool {
+      background: linear-gradient(135deg, rgba(91,156,255,0.25), rgba(91,156,255,0.15));
+      border-color: rgba(91,156,255,0.4);
+      box-shadow: 
+        0 0 0 1px rgba(91,156,255,0.3),
+        0 4px 12px rgba(91,156,255,0.2);
+    }
+
+    /* Settings button appears below selected tool - minimal design */
+    .settings-btn {
+      width: 48px;
+      height: 20px;
+      border-radius: 10px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.08);
+      color: var(--muted);
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 200ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tool-radio:checked ~ .settings-btn {
+      opacity: 1;
+      pointer-events: auto;
+      border-color: rgba(91,156,255,0.4);
+      color: var(--text);
+    }
+
+    .tool-radio:checked ~ .settings-btn:hover {
+      background: rgba(91,156,255,0.15);
+      border-color: rgba(91,156,255,0.6);
+    }
+
+    /* Settings menu */
+    .menu-toggle { display: none; }
+    .settings-popover {
+      position: absolute;
+      left: calc(100% + 16px);
+      top: 0;
+      width: var(--popover-w);
+      padding: 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.08));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 200ms ease;
+      z-index: 25;
+    }
+
+    .settings-popover::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 24px;
+      width: 0;
+      height: 0;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-right: 8px solid rgba(255,255,255,0.1);
+    }
+
+    .menu-toggle:checked ~ .settings-popover {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .settings-header .icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .color-section, .thickness-section {
+      display: grid;
+      gap: 12px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 600;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+
+    .swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 2px solid rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 150ms ease;
+      position: relative;
+    }
+    .swatch:hover {
+      transform: scale(1.1);
+    }
+    .swatch.selected::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+    }
+
+    /* Swatch colors */
+    .s-black { background:#1a1d23; }
+    .s-blue  { background:#5b9cff; }
+    .s-red   { background:#ff6b6b; }
+    .s-green { background:#2ecc71; }
+    .s-purple{ background:#9b7bff; }
+    .s-brown { background:#b0723b; }
+    .s-cyan  { background:#4fd1c5; }
+    .s-gray  { background:#9aa4b2; }
+    .s-yellow{ background:#ffd166; }
+    .s-lime  { background:#a8ff60; }
+    .s-pink  { background:#ff7eb6; }
+    .s-orange{ background:#ff9f40; }
+
+    /* Thickness controls */
+    .thickness-controls {
+      display: grid;
+      grid-template-columns: 1fr 60px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .thick-range {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+    }
+    .thick-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .thick-number {
+      width: 60px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 0 8px;
+      text-align: center;
+      font-weight: 600;
+      outline: none;
+    }
+
+    /* STAGE */
+    .stage { position: relative; min-width: 0; }
+
+    /* Top bar with distinct tabs */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      height: var(--topbar-h);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      padding: 0 16px;
+      gap: 12px;
+      background: #0f141b;
+      border-bottom: 1px solid #1b2130;
+    }
+
+    .tabs {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      min-width: 0;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .tab {
+      position: relative;
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 12px 12px 0 0;
+      border: 1px solid #1f2738;
+      background: #101824;
+      color: #8fa1bb;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 200ms ease;
+      max-width: 32%;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      margin-bottom: -1px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .tab:hover {
+      background: #132031;
+      color: #cfdaea;
+      border-color: #273249;
+      transform: translateY(-2px);
+    }
+
+    .tab.active {
+      background: #162438;
+      color: #e8f0ff;
+      border-color: #2b3b57;
+      box-shadow:
+        0 8px 24px rgba(0,0,0,0.4),
+        inset 0 0 0 1px rgba(255,255,255,0.08);
+      z-index: 2;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: -3px;
+      height: 4px;
+      background: var(--accent);
+      border-radius: 4px 4px 0 0;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 8px;
+    }
+
+    .ghost {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: var(--hit);
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--stroke);
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    .ghost:hover {
+      background: var(--panel-strong);
+      transform: translateY(-1px);
+    }
+
+    /* Content area */
+    .viewport {
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .page-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(92vw, 1300px);
+    }
+
+    /* White PDF page */
+    .page {
+      width: min(85vw, 1100px);
+      aspect-ratio: 1 / 1.4142;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e6e8ef;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.45);
+      display: grid;
+      place-items: center;
+      color: #6c7a89;
+      font-size: clamp(14px, 1.4vw, 18px);
+      text-align: center;
+      user-select: none;
+      margin: 24px 0 120px;
+    }
+
+    .page .fake-content {
+      width: 78%;
+      height: 78%;
+      border: 1px dashed #d7dbe4;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+    }
+
+    /* Thumbnails drawer */
+    #thumbs-toggle { display: none; }
+    .thumbs {
+      position: fixed;
+      top: var(--topbar-h);
+      right: 0;
+      height: calc(100% - var(--topbar-h));
+      width: min(80vw, var(--thumbs-w));
+      background: var(--panel);
+      border-left: 1px solid var(--stroke);
+      transform: translateX(100%);
+      transition: 220ms ease;
+      box-shadow: -24px 0 48px rgba(0,0,0,0.35);
+      display: grid;
+      grid-template-rows: 48px 1fr;
+      z-index: 12;
+    }
+    #thumbs-toggle:checked ~ .thumbs { transform: translateX(0%); }
+
+    .thumbs-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      padding: 0 12px 0 16px;
+      border-bottom: 1px solid var(--stroke);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .thumbs-close {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--stroke);
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .thumbs-body {
+      overflow: auto;
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .thumb {
+      width: 100%;
+      aspect-ratio: 1 / 1.4142;
+      border-radius: 10px;
+      border: 1px solid #e6e8ef;
+      background: #ffffff;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      display: grid;
+      place-items: center;
+      color: #75809b;
+      font-size: 12px;
+    }
+    .thumb.active {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Floating zoom controls */
+    .zoom-pill {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(20,24,32,0.8);
+      box-shadow: var(--shadow);
+      z-index: 14;
+    }
+
+    .zoom-btn, .zoom-label {
+      height: 38px;
+      min-width: 38px;
+      padding: 0 12px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      color: var(--text);
+      background: transparent;
+      cursor: pointer;
+      transition: 160ms ease;
+      font-weight: 600;
+    }
+    .zoom-btn:hover { background: rgba(255,255,255,0.1); }
+    .zoom-label {
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      padding: 0 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Icons */
+    .icon {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- FLOATING LEFT TOOLBAR -->
+    <aside class="toolbar" aria-label="Tools">
+      <!-- Modes -->
+      <div class="mode-stack">
+        <button class="mode" aria-label="Touch mode">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 12v7m0-7a2 2 0 0 0-2 2v2m2-4a2 2 0 0 1 2 2v3m-2-5V7a1 1 0 1 1 2 0v5m0 0l3 1.5m-3-1.5l-3 1.5"/>
+          </svg>
+        </button>
+        <button class="mode" aria-label="Mouse mode">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M6 3l7 7-4 1-1 4-7-7 5-5z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Tools with fixed slots -->
+      <div class="tool-stack">
+        <!-- Highlighter -->
+        <div class="tool-slot">
+          <input class="tool-radio" type="radio" name="tool" id="tool-highlighter" />
+          <label class="tool" for="tool-highlighter" aria-label="Highlighter">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M4 15l7-7 5 5-7 7H6l-2 2v-2z"/>
+              <path d="M14 4l6 6"/>
+            </svg>
+          </label>
+
+          <input type="checkbox" id="hl-menu" class="menu-toggle" />
+          <label class="settings-btn" for="hl-menu" aria-label="Highlighter settings">Set</label>
+
+          <div class="settings-popover" role="dialog" aria-label="Highlighter settings">
+            <div class="settings-header">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M4 15l7-7 5 5-7 7H6l-2 2v-2z"/>
+                <path d="M14 4l6 6"/>
+              </svg>
+              Highlighter Settings
+            </div>
+            
+            <div class="color-section">
+              <div class="section-label">Color</div>
+              <div class="swatches">
+                <button class="swatch s-yellow selected" aria-label="Yellow"></button>
+                <button class="swatch s-lime" aria-label="Lime"></button>
+                <button class="swatch s-pink" aria-label="Pink"></button>
+                <button class="swatch s-orange" aria-label="Orange"></button>
+                <button class="swatch s-cyan" aria-label="Cyan"></button>
+                <button class="swatch s-gray" aria-label="Gray"></button>
+              </div>
+            </div>
+            
+            <div class="thickness-section">
+              <div class="section-label">Thickness</div>
+              <div class="thickness-controls">
+                <input class="thick-range" type="range" min="1" max="30" value="8">
+                <input class="thick-number" type="number" min="1" max="30" value="8">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pen (default selected) -->
+        <div class="tool-slot">
+          <input class="tool-radio" type="radio" name="tool" id="tool-pen" checked />
+          <label class="tool" for="tool-pen" aria-label="Pen">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M3 21l3.5-.7L20 6.8a2.1 2.1 0 0 0 0-3L19.2 3a2.1 2.1 0 0 0-3 0L5.7 13.5 5 17.9 3 21z"/>
+              <path d="M6 18l-.5-2.5"/>
+            </svg>
+          </label>
+
+          <input type="checkbox" id="pen-menu" class="menu-toggle" />
+          <label class="settings-btn" for="pen-menu" aria-label="Pen settings">Set</label>
+
+          <div class="settings-popover" role="dialog" aria-label="Pen settings">
+            <div class="settings-header">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M3 21l3.5-.7L20 6.8a2.1 2.1 0 0 0 0-3L19.2 3a2.1 2.1 0 0 0-3 0L5.7 13.5 5 17.9 3 21z"/>
+                <path d="M6 18l-.5-2.5"/>
+              </svg>
+              Pen Settings
+            </div>
+            
+            <div class="color-section">
+              <div class="section-label">Color</div>
+              <div class="swatches">
+                <button class="swatch s-black" aria-label="Black"></button>
+                <button class="swatch s-blue selected" aria-label="Blue"></button>
+                <button class="swatch s-red" aria-label="Red"></button>
+                <button class="swatch s-green" aria-label="Green"></button>
+                <button class="swatch s-purple" aria-label="Purple"></button>
+                <button class="swatch s-brown" aria-label="Brown"></button>
+              </div>
+            </div>
+            
+            <div class="thickness-section">
+              <div class="section-label">Thickness</div>
+              <div class="thickness-controls">
+                <input class="thick-range" type="range" min="1" max="20" value="4">
+                <input class="thick-number" type="number" min="1" max="20" value="4">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Add button -->
+      <button class="add" aria-label="Add">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+    </aside>
+
+    <!-- STAGE -->
+    <main class="stage">
+      <!-- Top bar with distinct tabs -->
+      <header class="topbar">
+        <nav class="tabs" role="tablist" aria-label="Files">
+          <button class="tab active" role="tab" aria-selected="true">Proposal.pdf</button>
+          <button class="tab" role="tab" aria-selected="false">Contract_v2.pdf</button>
+          <button class="tab" role="tab" aria-selected="false">Notes.txt</button>
+          <button class="tab" role="tab" aria-selected="false">Sketch.png</button>
+        </nav>
+
+        <div class="top-actions">
+          <label class="ghost" for="thumbs-toggle" title="Toggle Page Previews">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M3 7h18M3 12h18M3 17h18"/>
+            </svg>
+          </label>
+          <button class="ghost" title="Rotate">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M12 2v3m0 14v3m8-8h3M2 12H5M18.4 5.6l2.1-2.1M3.5 20.5l2.1-2.1M18.4 18.4l2.1 2.1M3.5 3.5l2.1 2.1"/>
+            </svg>
+          </button>
+          <button class="ghost" title="Print">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M6 9V4h12v5M6 15H4a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"/>
+              <path d="M7 15h10v5H7z"/>
+            </svg>
+          </button>
+          <button class="ghost" title="Save">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M4 4h12l4 4v12H4z"/>
+              <path d="M8 4v6h8V4"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="viewport">
+        <div class="page-wrap">
+          <section class="page" aria-label="PDF Page">
+            <div class="fake-content">
+              <div>
+                <div style="font-weight:700; color:#667085; margin-bottom:8px;">PDF Page Mock</div>
+                <div style="color:#8b95a7;">Fixed tool slots prevent movement. Clear "Set" button indicates settings. Menu shows organized color and thickness controls with labels.</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Thumbnails Drawer -->
+      <input type="checkbox" id="thumbs-toggle" />
+      <aside class="thumbs" aria-label="Page previews">
+        <div class="thumbs-head">
+          <div style="opacity:.8">Pages</div>
+          <label class="thumbs-close" for="thumbs-toggle" title="Close">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </label>
+        </div>
+        <div class="thumbs-body">
+          <div class="thumb active">Page 1</div>
+          <div class="thumb">Page 2</div>
+          <div class="thumb">Page 3</div>
+          <div class="thumb">Page 4</div>
+          <div class="thumb">Page 5</div>
+          <div class="thumb">Page 6</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Floating Zoom -->
+  <div class="zoom-pill" aria-label="Zoom controls">
+    <button class="zoom-btn" title="Zoom Out">-</button>
+    <div class="zoom-label">100%</div>
+    <button class="zoom-btn" title="Zoom In">+</button>
+  </div>
+</body>
+</html>
