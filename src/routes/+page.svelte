@@ -1,6 +1,7 @@
 <script lang="ts">
     import FileSelectDialog from '$lib/FileSelectDialog.svelte';
     import CoreViewer from '../lib/pdf/CoreViewer.svelte';
+    import ZoomControls from '$lib/ui/zoomControls.svelte';
     let file: ArrayBuffer | null = null;
 
     function handleFileSelected(url: ArrayBuffer) {
@@ -14,6 +15,7 @@
   {:else}
     <CoreViewer {file} />
   {/if}
+  <ZoomControls />
 </main>
 
 
