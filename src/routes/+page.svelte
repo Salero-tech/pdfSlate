@@ -1,6 +1,9 @@
 <script lang="ts">
     import FileSelectDialog from '$lib/FileSelectDialog.svelte';
     import CoreViewer from '../lib/pdf/CoreViewer.svelte';
+    import ZoomControls from '$lib/ui/zoomControls.svelte';
+    import Toolbar from '$lib/ui/toolbar.svelte';
+    
     let file: ArrayBuffer | null = null;
 
     function handleFileSelected(url: ArrayBuffer) {
@@ -14,6 +17,8 @@
   {:else}
     <CoreViewer {file} />
   {/if}
+  <ZoomControls />
+  <Toolbar />
 </main>
 
 
@@ -22,7 +27,7 @@
     height: 100dvh;
     margin: 0;
     padding: 0;
-    background-color: #3a3838;
+    background-color: #0d1117;
   }
 
   .container {
@@ -31,7 +36,6 @@
     width: 100vw;
     justify-content: center;
     align-items: center;
-    background-color: #3a3838;
     box-sizing: border-box;
     overflow: hidden; /* Prevent children from overflowing */
   }
