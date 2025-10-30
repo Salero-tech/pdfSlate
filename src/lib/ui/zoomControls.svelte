@@ -1,12 +1,27 @@
 <script lang="ts">
-let className = '';
-export { className as class };
+    import { zoomStore } from '$lib/stores/zoomStore.svelte';
+
+    function handleZoomInput(event: Event) {
+        const target = event.target as HTMLInputElement;
+        const value = parseInt(target.value);
+        if (!isNaN(value) && value > 0 && value <= 500) {
+            $zoomStore = value / 100;
+        }
+    }
 </script>
 
-<div class="zoom-pill {className}" aria-label="Zoom controls">
-    <button class="zoom-btn" title="Zoom Out">-</button>
-    <div class="zoom-label">100%</div>
-    <button class="zoom-btn" title="Zoom In">+</button>
+<div class="zoom-pill" aria-label="Zoom controls">
+    <button class="zoom-btn" title="Zoom Out" onclick={() => $zoomStore-=0.1}>-</button>
+    <input 
+        class="zoom-label" 
+        type="number" 
+        min="10" 
+        max="500" 
+        value={($zoomStore * 100).toFixed(0)}
+        onchange={handleZoomInput}
+        title="Zoom percentage"
+    />
+    <button class="zoom-btn" title="Zoom In" onclick={() => $zoomStore+=0.1}>+</button>
 </div>
 
 <style>
@@ -41,6 +56,10 @@ export { className as class };
         transition: 160ms ease;
         font-weight: 600;
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
     }
 
     .zoom-btn:hover {
@@ -53,6 +72,26 @@ export { className as class };
         padding: 0 16px;
         font-size: 12px;
         color: #9aa4b2;
-        cursor: default;
+        cursor: text;
+        width: 60px;
+        text-align: center;
+        outline: none;
+    }
+
+    .zoom-label:focus {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(91, 156, 255, 0.6);
+        color: #e6edf3;
+    }
+
+    /* Hide number input arrows */
+    .zoom-label::-webkit-outer-spin-button,
+    .zoom-label::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    .zoom-label[type=number] {
+        -moz-appearance: textfield;
     }
 </style>
