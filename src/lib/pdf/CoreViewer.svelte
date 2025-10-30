@@ -24,7 +24,7 @@
         RenderPluginPackage,
     } from "@embedpdf/plugin-render/svelte";
     //components
-    import ZoomControlls from "./ZoomControlls.svelte";
+    import ZoomControlls from "./zoom/ZoomControlls.svelte";
     import SaveChanges from "./SaveChanges.svelte";
 
     const { file } = $props();
@@ -57,8 +57,9 @@
         }),
         createPluginRegistration(ExportPluginPackage, {
     defaultFileName: 'my-document.pdf',
-  }),
+        }),
     ];
+
 </script>
 
 {#snippet RenderPageSnippet(page: RenderPageProps)}
@@ -83,6 +84,7 @@
         <Viewport class="viewport-class">
             <Scroller {RenderPageSnippet} />
         </Viewport>
+
     </EmbedPDF>
 {/if}
 
