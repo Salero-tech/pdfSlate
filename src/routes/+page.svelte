@@ -24,7 +24,7 @@
     height: 100dvh;
     margin: 0;
     padding: 0;
-    background-color: #3a3838;
+    background-color: #0d1117;
   }
 
   .container {
@@ -33,7 +33,6 @@
     width: 100vw;
     justify-content: center;
     align-items: center;
-    background-color: #3a3838;
     box-sizing: border-box;
     overflow: hidden; /* Prevent children from overflowing */
   }
